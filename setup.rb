@@ -8,10 +8,10 @@ require 'optparse'
 include FileUtils
 
 
-unless ENV['USER'] == 'root'
-  NSLog('You need to run this script as root.')
-  exit
-end
+# unless ENV['USER'] == 'root'
+#   NSLog('You need to run this script as root.')
+#   exit
+# end
 
 
 options = {}
@@ -25,10 +25,12 @@ end.parse!
 
 
 JENKINS_DOWNLOAD_URL = 'http://mirrors.jenkins-ci.org/war/latest/jenkins.war'
-JENKINS_INSTALL_DIR  = '/Library/Application Support/Jenkins'
+JENKINS_INSTALL_DIR  = '/Users/bertrand/Workspace/Jenkins'
 JENKINS_WAR_FILE     = File.join( JENKINS_INSTALL_DIR, 'jenkins.war' )
 JENKINS_HOME_DIR     = File.join( JENKINS_INSTALL_DIR, 'working_dir' )
 JENKINS_LOG_DIR      = '/Library/Logs/Jenkins'
+JENKINS_USERNAME     = 'bertrand'
+JENKINS_GROUPNAME    = 'staff'
 
 def write_file filename, &block
   File.open( filename, 'w', &block )
@@ -49,6 +51,8 @@ raise 'Failed to download Jenkins' if jenkins_war.nil?
 NSLog('Installing Jenkins')
 write_file(JENKINS_WAR_FILE) { |file| file.write String.new(jenkins_war) }
 
+chown_R(JENKINS_USERNAME, JENKINS_GROUPNAME, JENKINS_INSTALL_DIR)
+
 
 ### Launchd setup
 NSLog('Creating launchd plist')
@@ -61,6 +65,8 @@ arguments = [ '/usr/bin/java', '-jar', JENKINS_WAR_FILE ]
 arguments << "--httpPort=#{options[:port]}" if options.has_key?(:port)
 
 LAUNCHD_SCRIPT    = {
+  'UserName'             => JENKINS_USERNAME,
+  'GroupName'            => JENKINS_GROUPNAME,
   'Label'                => LAUNCHD_LABEL,
   'RunAtLoad'            => true,
   'EnvironmentVariables' => { 'JENKINS_HOME' => JENKINS_HOME_DIR },
